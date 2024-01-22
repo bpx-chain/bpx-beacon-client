@@ -42,7 +42,7 @@ This instruction is for MacOS, Ubuntu, CentOS, RedHat, WSL2, Amazon Linux 2 and 
 
 ## Usage
 
-> :warning: **You need both Beacon Client and [Execution Client](https://github.com/bpx-network/bpx-execution-client) to synchronize with the network.**
+> :warning: **You need both Beacon Client and [Execution Client](https://github.com/bpx-chain/bpx-execution-client) to synchronize with the network.**
 
 ### Windows
 1. To launch the full node software with a GUI simply use the "BPX Beacon Client" shortcut on your desktop or Start Menu

@@ -41,7 +41,7 @@ Remove-Item node_modules -Recurse -Force
 
 # Other than `bpx-gui/package/gui`, all other packages are no longer necessary after build.
 # Since these unused packages make cache unnecessarily fat, unused packages should be removed.
-Write-Output "Remove unused @bpx-network packages to make cache slim"
+Write-Output "Remove unused @bpx-chain packages to make cache slim"
 Remove-Item packages\api -Recurse -Force
 Remove-Item packages\api-react -Recurse -Force
 Remove-Item packages\core -Recurse -Force
@@ -54,5 +54,5 @@ Remove-Item electron\dist -Recurse -Force # ~186MB
 Remove-Item "@mui" -Recurse -Force # ~71MB
 Remove-Item typescript -Recurse -Force # ~63MB
 
-# Remove `packages/gui/node_modules/@bpx-network` because it causes an error on later `electron-packager` command
-Remove-Item "@bpx-network" -Recurse -Force
+# Remove `packages/gui/node_modules/@bpx-chain` because it causes an error on later `electron-packager` command
+Remove-Item "@bpx-chain" -Recurse -Force

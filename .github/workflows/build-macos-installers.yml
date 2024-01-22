@@ -42,7 +42,7 @@ jobs:
             bladebit-suffix: macos-arm64.tar.gz
 
     steps:
-      - uses: bpx-network/bpx-beacon-client/.github/actions/clean-workspace@main
+      - uses: bpx-chain/bpx-beacon-client/.github/actions/clean-workspace@main
 
       - name: Checkout Code
         uses: actions/checkout@v3

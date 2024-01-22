@@ -29,7 +29,7 @@ rm -rf node_modules
 
 # Other than `bpx-gui/package/gui`, all other packages are no longer necessary after build.
 # Since these unused packages make cache unnecessarily fat, unused packages should be removed.
-echo "Remove unused @bpx-network packages to make cache slim"
+echo "Remove unused @bpx-chain packages to make cache slim"
 ls -l packages
 rm -rf packages/api
 rm -rf packages/api-react
@@ -43,5 +43,5 @@ rm -rf electron/dist # ~186MB
 rm -rf "@mui" # ~71MB
 rm -rf typescript # ~63MB
 
-# Remove `packages/gui/node_modules/@bpx-network` because it causes an error on later `electron-packager` command
-rm -rf "@bpx-network"
+# Remove `packages/gui/node_modules/@bpx-chain` because it causes an error on later `electron-packager` command
+rm -rf "@bpx-chain"

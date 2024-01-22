@@ -32,10 +32,10 @@ jobs:
         python-version: [3.8]
 
     steps:
-    - uses: bpx-network/bpx-beacon-client/.github/actions/clean-workspace@main
+    - uses: bpx-chain/bpx-beacon-client/.github/actions/clean-workspace@main
 
     - name: Add safe git directory
-      uses: bpx-network/bpx-beacon-client/.github/actions/git-mark-workspace-safe@main
+      uses: bpx-chain/bpx-beacon-client/.github/actions/git-mark-workspace-safe@main
 
     - name: Checkout Code
       uses: actions/checkout@v3

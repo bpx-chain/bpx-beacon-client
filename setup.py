@@ -107,7 +107,7 @@ kwargs = dict(
     long_description_content_type="text/markdown",
     zip_safe=False,
     project_urls={
-        "Source": "https://github.com/bpx-network/bpx-beacon-client/",
+        "Source": "https://github.com/bpx-chain/bpx-beacon-client/",
     },
 )
 
