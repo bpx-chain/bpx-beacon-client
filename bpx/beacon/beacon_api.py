@@ -174,6 +174,9 @@ class BeaconAPI:
 
     @api_request(reply_types=[ProtocolMessageTypes.respond_blocks, ProtocolMessageTypes.reject_blocks])
     async def request_blocks(self, request: beacon_protocol.RequestBlocks) -> Optional[Message]:
+        # note that we treat the request range as *inclusive*, but we check the
+        # size before we bump end_height. So MAX_BLOCK_COUNT_PER_REQUESTS is off
+        # by one
         if (
             request.end_height < request.start_height
             or request.end_height - request.start_height > self.beacon.constants.MAX_BLOCK_COUNT_PER_REQUESTS
