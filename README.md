@@ -3,8 +3,6 @@
 
 Official Python implementation of the BPX Beacon Chain: full node, introducer, farmer and timelord
 
-[![Discord](https://img.shields.io/discord/940233080982077441?label=discord&logo=discord)](https://discord.gg/aKdG6UvTnG)
-
 BPX is a new generation Ethereum-compatible blockchain based upon an innovative consensus algorithm, Proof of Space and Time known from the Chia Network. Proof of Space is a cryptographic technique where farmers prove that they allocate unused hard disk space to the network. Proof of Time increases the overall security of the blockchain.
 
 ## Installation
