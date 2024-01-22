@@ -69,7 +69,7 @@ dev_dependencies = [
 
 kwargs = dict(
     name="bpx-beacon-client",
-    author="BPX Network",
+    author="BPX Chain",
     author_email="hello@bpxchain.cc",
     description="BPX V3 network Beacon Client",
     url="https:/bpxchain.cc/",
