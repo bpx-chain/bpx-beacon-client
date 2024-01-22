@@ -18,7 +18,11 @@ from typing_extensions import Protocol, final
 from bpx.cmds.init_funcs import bpx_full_version_str
 from bpx.protocols.protocol_message_types import ProtocolMessageTypes
 from bpx.protocols.protocol_state_machine import message_response_ok
-from bpx.protocols.protocol_timing import API_EXCEPTION_BAN_SECONDS, INTERNAL_PROTOCOL_ERROR_BAN_SECONDS
+from bpx.protocols.protocol_timing import (
+    API_EXCEPTION_BAN_SECONDS,
+    INTERNAL_PROTOCOL_ERROR_BAN_SECONDS,
+    CONSENSUS_ERROR_BAN_SECONDS
+)
 from bpx.protocols.shared_protocol import Capability, Handshake
 from bpx.server.capabilities import known_active_capabilities
 from bpx.server.outbound_message import Message, NodeType, make_msg
@@ -26,7 +30,7 @@ from bpx.server.rate_limits import RateLimiter
 from bpx.types.blockchain_format.sized_bytes import bytes32
 from bpx.types.peer_info import PeerInfo
 from bpx.util.api_decorators import get_metadata
-from bpx.util.errors import Err, ProtocolError
+from bpx.util.errors import Err, ProtocolError, ConsensusError
 from bpx.util.ints import uint8, uint16
 from bpx.util.log_exceptions import log_exceptions
 
@@ -427,8 +431,12 @@ class WSBpxConnection:
                 self.log.error(f"Exception: {e} {type(e)}, closing connection {self.get_peer_logging()}. {tb}")
             else:
                 self.log.debug(f"Exception: {e} while closing connection")
+            if isinstance(e, ConsensusError):
+                ban_time = CONSENSUS_ERROR_BAN_SECONDS
+            else:
+                ban_time = API_EXCEPTION_BAN_SECONDS
             # TODO: actually throw one of the errors from errors.py and pass this to close
-            await self.close(API_EXCEPTION_BAN_SECONDS, WSCloseCode.PROTOCOL_ERROR, Err.UNKNOWN)
+            await self.close(ban_time, WSCloseCode.PROTOCOL_ERROR, Err.UNKNOWN)
         finally:
             if task_id in self.api_tasks:
                 self.api_tasks.pop(task_id)
