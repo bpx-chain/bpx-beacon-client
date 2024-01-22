@@ -60,7 +60,9 @@ fpm -s dir -t rpm \
   --version "$BPX_INSTALLER_VERSION" \
   --architecture "$REDHAT_PLATFORM" \
   --description "BPX is an EVM-compatible blockchain based on Proof of Space and Time consensus." \
-  --depends /usr/lib64/libcrypt.so.1 \
+  --rpm-tag 'Recommends: libxcrypt-compat' \
+  --rpm-tag '%define _build_id_links none' \
+  --rpm-tag '%undefine _missing_build_ids_terminate_build' \
   .
 # CLI only rpm done
 
