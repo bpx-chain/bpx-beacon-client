@@ -50,7 +50,6 @@ class Options(Enum):
     BLADEBIT_NO_T2_DIRECT = 35
     COMPRESSION = 36
     BLADEBIT_DEVICE_INDEX = 37
-    BLADEBIT_NO_DIRECT_DOWNLOADS = 38
     CUDA_TMP_DIR = 39
 
 
@@ -108,7 +107,6 @@ bladebit_cuda_plotter_options = [
     Options.FINAL_DIR,
     Options.COMPRESSION,
     Options.BLADEBIT_DEVICE_INDEX,
-    Options.BLADEBIT_NO_DIRECT_DOWNLOADS,
 ]
 
 bladebit_ram_plotter_options = [
@@ -450,13 +448,6 @@ def build_parser(subparsers, root_path, option_list, name, plotter_desc):
                 type=int,
                 help="The CUDA device index",
                 default=0,
-            )
-        if option is Options.BLADEBIT_NO_DIRECT_DOWNLOADS:
-            parser.add_argument(
-                "--no-direct-downloads",
-                action="store_true",
-                help="Don't allocate host tables using pinned buffers",
-                default=False,
             )
 
 
