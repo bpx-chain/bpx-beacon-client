@@ -738,7 +738,7 @@ class BeaconStore:
             if eos_op is not None:
                 self.recent_eos.put(eos_op.challenge_chain.get_hash(), (eos_op, time.time()))
 
-        return BeaconStorePeakResult(new_eos, new_sps, new_ips)
+        return BeaconStorePeakResult(new_eos, sorted(new_sps)[-4:], new_ips)
 
     def get_finished_sub_slots(
         self,
