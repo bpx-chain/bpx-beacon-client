@@ -51,7 +51,9 @@ class Options(Enum):
     COMPRESSION = 36
     BLADEBIT_DEVICE_INDEX = 37
     CUDA_TMP_DIR = 39
-
+    BLADEBIT_HYBRID_128_MODE = 40
+    BLADEBIT_HYBRID_16_MODE = 41
+    
 
 chia_plotter_options = [
     Options.TMP_DIR,
@@ -107,6 +109,8 @@ bladebit_cuda_plotter_options = [
     Options.FINAL_DIR,
     Options.COMPRESSION,
     Options.BLADEBIT_DEVICE_INDEX,
+    Options.BLADEBIT_HYBRID_128_MODE,
+    Options.BLADEBIT_HYBRID_16_MODE,
 ]
 
 bladebit_ram_plotter_options = [
@@ -448,6 +452,20 @@ def build_parser(subparsers, root_path, option_list, name, plotter_desc):
                 type=int,
                 help="The CUDA device index",
                 default=0,
+            )
+        if option is Options.BLADEBIT_HYBRID_128_MODE:
+            parser.add_argument(
+                "--disk-128",
+                action="store_true",
+                help="Enable hybrid disk plotting for 128G system RAM",
+                default=False,
+            )
+        if option is Options.BLADEBIT_HYBRID_16_MODE:
+            parser.add_argument(
+                "--disk-16",
+                action="store_true",
+                help="Enable hybrid disk plotting for 16G system RAM",
+                default=False,
             )
 
 

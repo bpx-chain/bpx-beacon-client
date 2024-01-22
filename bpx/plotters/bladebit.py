@@ -362,6 +362,10 @@ def plot_bladebit(args, bpx_root_path, root_path):
     if "device" in args and str(args.device).isdigit():
         call_args.append("--device")
         call_args.append(str(args.device))
+    if "disk_128" in args and args.disk_128:
+        call_args.append("--disk-128")
+    if "disk_16" in args and args.disk_16:
+        call_args.append("--disk-16")
 
     call_args.append(args.finaldir)
 
