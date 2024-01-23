@@ -6,33 +6,33 @@ import sys
 from setuptools import find_packages, setup
 
 dependencies = [
-    "aiofiles==23.1.0",  # Async IO for files
-    "anyio==3.6.2",
+    "aiofiles==23.2.1",  # Async IO for files
+    "anyio==4.0.0",
     "blspy==2.0.2", # Signature library
-    "chiavdf==1.0.10",  # timelord and vdf verification
-    "chiapos==2.0.2",  # proof of space
-    "aiohttp==3.8.4",  # HTTP server for beacon client rpc
-    "aiosqlite==0.17.0",  # asyncio wrapper for sqlite, to store blocks
-    "bitstring==4.0.1",  # Binary data management library
+    "chiavdf==1.1.0",  # timelord and vdf verification
+    "chiapos==2.0.3",  # proof of space
+    "aiohttp==3.9.1",  # HTTP server for beacon client rpc
+    "aiosqlite==0.10.0",  # asyncio wrapper for sqlite, to store blocks
+    "bitstring==4.1.2",  # Binary data management library
     "colorama==0.4.6",  # Colorizes terminal output
     "colorlog==6.7.0",  # Adds color to logs
-    "concurrent-log-handler==0.9.20",  # Concurrently log and rotate logs
-    "cryptography==39.0.1",  # Python cryptography library for TLS - keyring conflict
-    "filelock==3.9.0",  # For reading and writing config multiprocess and multithread safely  (non-reentrant locks)
-    "keyring==23.13.1",  # Store keys in MacOS Keychain, Windows Credential Locker
-    "PyYAML==6.0",  # Used for config file format
-    "setproctitle==1.3.2",  # Gives the bpx processes readable names
+    "concurrent-log-handler==0.9.24",  # Concurrently log and rotate logs
+    "cryptography==41.0.5",  # Python cryptography library for TLS - keyring conflict
+    "filelock==3.13.1",  # For reading and writing config multiprocess and multithread safely  (non-reentrant locks)
+    "keyring==24.3.0",  # Store keys in MacOS Keychain, Windows Credential Locker
+    "PyYAML==6.0.1",  # Used for config file format
+    "setproctitle==1.3.3",  # Gives the bpx processes readable names
     "sortedcontainers==2.4.0",  # For maintaining sorted mempools
     "click==8.1.3",  # For the CLI
-    "dnspython==2.3.0",  # Query DNS seeds
+    "dnspython==2.4.2",  # Query DNS seeds
     "watchdog==2.2.0",  # Filesystem event watching - watches keyring.yaml
     "dnslib==0.9.23",  # dns lib
-    "typing-extensions==4.5.0",  # typing backports like Protocol and TypedDict
-    "zstd==1.5.4.0",
-    "packaging==23.0",
+    "typing-extensions==4.8.0",  # typing backports like Protocol and TypedDict
+    "zstd==1.5.5.1",
+    "packaging==23.2",
     "psutil==5.9.4",
-    "web3==6.2.0",
-    "PyJWT==2.6.0",
+    "web3==6.14.0",
+    "PyJWT==2.8.0",
 ]
 
 upnp_dependencies = [
