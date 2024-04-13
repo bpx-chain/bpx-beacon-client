@@ -1,5 +1,6 @@
-
 ## BPX Beacon Client
+
+![BPX](./logo.svg)
 
 Official Python implementation of the BPX Beacon Chain: full node, introducer, farmer and timelord
 
