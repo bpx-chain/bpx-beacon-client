@@ -62,7 +62,6 @@ dev_dependencies = [
     "pyinstaller==5.8.0",
     "types-aiofiles",
     "types-cryptography",
-    "types-pkg_resources",
     "types-pyyaml",
     "types-setuptools",
 ]
