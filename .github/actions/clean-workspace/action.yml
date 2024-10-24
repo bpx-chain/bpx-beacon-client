@@ -1,0 +1,15 @@
+name: "Clean Workspace"
+description: "Cleans the current workspace before checking out code, to ensure a clean slate"
+runs:
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      run: |
+        # This step needs both sudo and non-sudo versions of the same command in case this is run in a container
+        # without sudo installed
+        sudo find . -name . -o -prune -exec rm -rf -- {} + || true
+        find . -name . -o -prune -exec rm -rf -- {} + || true
+        
+        sudo rm -rf $HOME/.npm || true
+        rm -rf $HOME/.npm || true
+      shell: sh

@@ -1,0 +1,68 @@
+name: "Setup Python"
+description: 'Set up a specific version of Python and add the command-line tools to the PATH.'
+# Inputs match the upstream setup-python action
+# Not all of them are necessarily supported for the M1 or ARM64 linux versions
+inputs:
+  python-version:
+    description: "Version range or exact version of a Python version to use, using SemVer's version range syntax."
+    required: true
+    default: '3.x'
+  cache:
+    description: 'Used to specify a package manager for caching in the default directory. Supported values: pip, pipenv, poetry.'
+    required: false
+  architecture:
+    description: 'The target architecture (x86, x64) of the Python interpreter.'
+    required: false
+  token:
+    description: Used to pull python distributions from actions/python-versions. Since there's a default, this is typically not supplied by the user.
+    required: false
+    default: ${{ github.token }}
+  cache-dependency-path:
+    required: false
+    description: 'Used to specify the path to dependency files. Supports wildcards or a list of file names for caching multiple dependencies.'
+  force-pyenv:
+    required: false
+    default: 'false'
+    description: "Will force using pyenv instead of the upstream action if set to 'true'"
+outputs:
+  python-version:
+    description: "The installed python version. Useful when given a version range as input."
+  cache-hit:
+    description: 'A boolean value to indicate a cache entry was found'
+runs:
+  using: "composite"
+  steps:
+    - name: Call upstream setup-python action
+      uses: actions/setup-python@v4
+      # Requires native m1 runner software, not x64 running via arch flags
+      if: runner.arch != 'ARM64' && inputs.force-pyenv == 'false'
+      with:
+        python-version: ${{ format('{0}.0-alpha - {0}.X', inputs.python-version) }}
+        architecture: ${{ inputs.architecture }}
+        cache: ${{ inputs.cache }}
+        token: ${{ inputs.token }}
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+    - name: Setup Python on ARM64 (pyenv)
+      if: runner.arch == 'ARM64' || inputs.force-pyenv != 'false'
+      shell: sh
+      run: |
+        unset PYENV_ROOT
+
+        if [ ! -d "$HOME/.pyenv" ]; then
+          curl https://pyenv.run | bash
+        fi
+        
+        export PATH="$HOME/.pyenv/bin:$PATH"
+        echo "PATH=$HOME/.pyenv/bin:$PATH" >> $GITHUB_ENV
+        
+        export PYENV_ROOT="$HOME/.pyenv"
+        echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
+        
+        # Ensure pyenv is up to date
+        pyenv update
+        
+        FULL_PY_VERSION=$(pyenv install --list | grep "^  ${{ inputs.python-version }}" | grep -v 'dev' | tail -n 1)
+        env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install --skip-existing $FULL_PY_VERSION
+        
+        PY_PREFIX=$(pyenv prefix $FULL_PY_VERSION)
+        echo "PATH=$PY_PREFIX/bin:$PATH" >> $GITHUB_ENV

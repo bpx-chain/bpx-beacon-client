@@ -1,26 +1,26 @@
 name: 📦🚀 Build Installer - Windows 10
 
 on:
-  workflow_dispatch:
   push:
-    paths-ignore:
-    - '**.md'
     branches:
-      - 'long_lived/**'
       - main
+      - dev
       - 'release/**'
+    tags:
+      - '**'
   release:
     types: [published]
   pull_request:
-    paths-ignore:
-    - '**.md'
     branches:
       - '**'
 
 concurrency:
   # SHA is added to the end if on `main` to let all main workflows run
-  group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}-${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/heads/long_lived/')) && github.sha || '' }}
+  group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}-${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/heads/release/')) && github.sha || '' }}
   cancel-in-progress: true
+
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
   build:
@@ -40,7 +40,7 @@ jobs:
         submodules: recursive
 
     - name: Set Env
-      uses: Chia-Network/actions/setjobenv@main
+      uses: ./.github/actions/setjobenv
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -76,7 +76,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
 
-    - uses: Chia-Network/actions/setup-python@main
+    - uses: ./.github/actions/setup-python
       name: Install Python ${{ matrix.python-version }}
       with:
         python-version: ${{ matrix.python-version }}
@@ -86,34 +86,18 @@ jobs:
       with:
         node-version: '16.x'
 
-    - name: Test for secrets access
-      id: check_secrets
+    - name: Check tag type
+      id: check_tag_type
       shell: bash
       run: |
-        unset HAS_SIGNING_SECRET
-        unset HAS_AWS_SECRET
-        unset HAS_GLUE_SECRET
-
-        if [ -n "$SIGNING_SECRET" ]; then HAS_SIGNING_SECRET='true' ; fi
-        echo "HAS_SIGNING_SECRET=${HAS_SIGNING_SECRET}" >>$GITHUB_OUTPUT
-
-        if [ -n "$AWS_SECRET" ]; then HAS_AWS_SECRET='true' ; fi
-        echo HAS_AWS_SECRET=${HAS_AWS_SECRET} >>$GITHUB_OUTPUT
-
-        if [ -n "$GLUE_ACCESS_TOKEN" ]; then HAS_GLUE_SECRET='true' ; fi
-        echo HAS_GLUE_SECRET=${HAS_GLUE_SECRET} >>$GITHUB_OUTPUT
-      env:
-        SIGNING_SECRET: "${{ secrets.WIN_CODE_SIGN_CERT }}"
-        AWS_SECRET: "${{ secrets.INSTALLER_UPLOAD_KEY }}"
-        GLUE_ACCESS_TOKEN: "${{ secrets.GLUE_ACCESS_TOKEN }}"
-
-    - name: Decode code signing cert into an encrypted file
-      if: steps.check_secrets.outputs.HAS_SIGNING_SECRET
-      uses: kitek/decode-base64-into-file-action@1.0
-      with:
-        encoded-value: ${{ secrets.WIN_CODE_SIGN_CERT }}
-        destination-file: .\win_code_sign_cert.p12
-
+        REG_B="^[0-9]+\.[0-9]+\.[0-9]+-b[0-9]+$"
+        REG_RC="^[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$"
+        if [[ "${{ github.event.release.tag_name }}" =~ $REG_B ]] || [[ "${{ inputs.release_type }}" =~ $REG_B ]]; then
+          echo "TAG_TYPE=beta" >> "$GITHUB_OUTPUT"
+        elif [[ "${{ github.event.release.tag_name }}" =~ $REG_RC ]] || [[ "${{ inputs.release_type }}" =~ $REG_RC ]]; then
+          echo "TAG_TYPE=rc" >> "$GITHUB_OUTPUT"
+        fi
+    
     # Create our own venv outside of the git directory JUST for getting the ACTUAL version so that install can't break it
     - name: Get version number
       id: version_number
@@ -122,9 +106,9 @@ jobs:
         python -m venv ../venv
         source ../venv/Scripts/activate
         pip3 install setuptools_scm
-        CHIA_INSTALLER_VERSION=$(python ./build_scripts/installer-version.py)
-        echo "$CHIA_INSTALLER_VERSION"
-        echo "CHIA_INSTALLER_VERSION=$CHIA_INSTALLER_VERSION" >>$GITHUB_OUTPUT
+        BPX_INSTALLER_VERSION=$(python ./build_scripts/installer-version.py)
+        echo "$BPX_INSTALLER_VERSION"
+        echo "BPX_INSTALLER_VERSION=$BPX_INSTALLER_VERSION" >>$GITHUB_OUTPUT
         deactivate
 
     - name: Get latest madmax plotter
@@ -137,29 +121,40 @@ jobs:
         gh release download -R Chia-Network/chia-plotter-madmax $LATEST_MADMAX -p 'chia_plot-*.exe' -O $GITHUB_WORKSPACE\\madmax\\chia_plot.exe
         gh release download -R Chia-Network/chia-plotter-madmax $LATEST_MADMAX -p 'chia_plot_k34-*.exe' -O $GITHUB_WORKSPACE\\madmax\\chia_plot_k34.exe
 
-    - name: Get latest bladebit plotter
-      if: '!github.event.release.prerelease'
+    - name: Fetch bladebit versions
+      shell: bash
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      shell: bash
       run: |
-        LATEST_BLADEBIT=$(gh api repos/Chia-Network/bladebit/releases/latest --jq 'select(.prerelease == false) | .tag_name')
-        mkdir $GITHUB_WORKSPACE\\bladebit
-        gh release download -R Chia-Network/bladebit $LATEST_BLADEBIT -p '*windows-x86-64.zip' -O $GITHUB_WORKSPACE\\bladebit\\bladebit.zip
-        unzip $GITHUB_WORKSPACE\\bladebit\\bladebit.zip -d $GITHUB_WORKSPACE\\bladebit\\
-        rm $GITHUB_WORKSPACE\\bladebit\\bladebit.zip
+        # Fetch the latest version of each type
+        LATEST_RELEASE=$(gh api repos/Chia-Network/bladebit/releases/latest --jq 'select(.prerelease == false) | .tag_name')
+        LATEST_BETA=$(gh api repos/Chia-Network/bladebit/releases --jq 'map(select(.prerelease) | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+-beta[0-9]+$"))) | first | .tag_name')
+        LATEST_RC=$(gh api repos/Chia-Network/bladebit/releases --jq 'map(select(.prerelease) | select(.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+-rc[0-9]+$"))) | first | .tag_name')
 
-    - name: Get latest prerelease bladebit plotter
-      if: env.PRE_RELEASE == 'true'
+        # Compare the versions and choose the newest that matches the requirements
+        if [[ "$TAG_TYPE" == "beta" || -z "${{ github.event.release.tag_name }}" ]]; then
+          # For beta or dev builds (indicated by the absence of a tag), use the latest version available
+          LATEST_VERSION=$(printf "%s\n%s\n%s\n" "$LATEST_RELEASE" "$LATEST_BETA" "$LATEST_RC" | sed '/-/!s/$/_/' | sort -V | sed 's/_$//' | tail -n 1)
+        elif [[ "$TAG_TYPE" == "rc" ]]; then
+          # For RC builds, use the latest RC or full release if it's newer
+          LATEST_VERSION=$(printf "%s\n%s\n" "$LATEST_RELEASE" "$LATEST_RC" | sed '/-/!s/$/_/' | sort -V | sed 's/_$//' | tail -n 1)
+        else
+          # For full releases, use the latest full release
+          LATEST_VERSION="$LATEST_RELEASE"
+        fi
+        echo "LATEST_VERSION=$LATEST_VERSION" >> "$GITHUB_ENV"
+
+    - name: Get latest bladebit plotter
+      shell: bash
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      shell: bash
       run: |
-        LATEST_PRERELEASE=$(gh api repos/Chia-Network/bladebit/releases --jq 'map(select(.prerelease)) | first | .tag_name')
-        mkdir $GITHUB_WORKSPACE\\bladebit
-        gh release download -R Chia-Network/bladebit $LATEST_PRERELEASE -p '*windows-x86-64.zip' -O $GITHUB_WORKSPACE\\bladebit\\bladebit.zip
-        unzip $GITHUB_WORKSPACE\\bladebit\\bladebit.zip -d $GITHUB_WORKSPACE\\bladebit\\
-        rm $GITHUB_WORKSPACE\\bladebit\\bladebit.zip
+        # Download and extract the chosen version
+        mkdir "$GITHUB_WORKSPACE\\bladebit"
+        cd "$GITHUB_WORKSPACE\\bladebit"
+        gh release download -R Chia-Network/bladebit "$LATEST_VERSION" -p 'bladebit*windows-x86-64.zip'
+        ls *.zip | xargs -I{} bash -c 'unzip {} && rm {}'
+        cd "$OLDPWD"
 
     - name: Run install script
       env:
@@ -167,24 +162,24 @@ jobs:
       run: |
         .\Install.ps1 -d
 
-    - uses: chia-network/actions/activate-venv@main
+    - uses: ./.github/actions/activate-venv
 
     - name: Prepare GUI cache
       id: gui-ref
       shell: bash
       run: |
-        gui_ref=$(git submodule status chia-blockchain-gui | sed -e 's/^ //g' -e 's/ chia-blockchain-gui.*$//g')
+        gui_ref=$(git submodule status bpx-gui | sed -e 's/^ //g' -e 's/ bpx-gui.*$//g')
         echo "${gui_ref}"
         echo "GUI_REF=${gui_ref}" >>$GITHUB_OUTPUT
-        echo "rm -rf ./chia-blockchain-gui"
-        rm -rf ./chia-blockchain-gui
+        echo "rm -rf ./bpx-gui"
+        rm -rf ./bpx-gui
 
     - name: Cache GUI
       uses: actions/cache@v3
       id: cache-gui
       with:
-        path: .\chia-blockchain-gui
-        key: ${{ runner.os }}-chia-blockchain-gui-${{ steps.gui-ref.outputs.GUI_REF }}
+        path: .\bpx-gui
+        key: ${{ runner.os }}-bpx-gui-${{ steps.gui-ref.outputs.GUI_REF }}
 
     - if: steps.cache-gui.outputs.cache-hit != 'true'
       name: Build GUI
@@ -195,80 +190,17 @@ jobs:
 
     - name: Build Windows installer
       env:
-        CHIA_INSTALLER_VERSION: ${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}
-        HAS_SECRET: ${{ steps.check_secrets.outputs.HAS_SIGNING_SECRET }}
-        CSC_KEY_PASSWORD: ${{ secrets.WIN_CODE_SIGN_PASS }}
+        BPX_INSTALLER_VERSION: ${{ steps.version_number.outputs.BPX_INSTALLER_VERSION }}
       run: |
         $env:path="C:\Program` Files` (x86)\Microsoft` Visual` Studio\2019\Enterprise\SDK\ScopeCppSDK\vc15\VC\bin\;$env:path"
-        $env:path="C:\Program` Files` (x86)\Windows` Kits\10\App` Certification` Kit;$env:path"
         cd .\build_scripts
         .\build_windows-2-installer.ps1
 
     - name: Upload Installer to artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: chia-installers-windows-exe-intel
-        path: ${{ github.workspace }}\chia-blockchain-gui\release-builds\
-
-    - name: Install AWS CLI
-      if: steps.check_secrets.outputs.HAS_AWS_SECRET
-      run: |
-          msiexec.exe /i https://awscli.amazonaws.com/AWSCLIV2.msi
-
-    - name: Configure AWS Credentials
-      if: steps.check_secrets.outputs.HAS_AWS_SECRET
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.INSTALLER_UPLOAD_KEY }}
-        aws-secret-access-key: ${{ secrets.INSTALLER_UPLOAD_SECRET }}
-        aws-region: us-west-2
-
-    - name: Upload to s3
-      if: steps.check_secrets.outputs.HAS_AWS_SECRET
-      env:
-        CHIA_INSTALLER_VERSION: ${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}
-      shell: bash
-      run: |
-        GIT_SHORT_HASH=$(echo "${GITHUB_SHA}" | cut -c1-8)
-        CHIA_DEV_BUILD=${CHIA_INSTALLER_VERSION}-$GIT_SHORT_HASH
-        echo CHIA_DEV_BUILD=${CHIA_DEV_BUILD} >>$GITHUB_OUTPUT
-        echo ${CHIA_DEV_BUILD}
-        pwd
-        aws s3 cp chia-blockchain-gui/release-builds/windows-installer/ChiaSetup-${CHIA_INSTALLER_VERSION}.exe s3://download.chia.net/dev/ChiaSetup-${CHIA_DEV_BUILD}.exe
-
-    - name: Create Checksums
-      env:
-        CHIA_INSTALLER_VERSION: ${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}
-      run: |
-         certutil.exe -hashfile ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe SHA256 > ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe.sha256
-         ls ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\
-
-    - name: Create torrent
-      if: env.FULL_RELEASE == 'true'
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        py3createtorrent -f -t udp://tracker.opentrackr.org:1337/announce ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe -o ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe.torrent --webseed https://download.chia.net/install/ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe
-        ls
-        gh release upload $env:RELEASE_TAG ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe.torrent
-
-    - name: Upload Dev Installer
-      if: steps.check_secrets.outputs.HAS_AWS_SECRET && github.ref == 'refs/heads/main'
-      env:
-        CHIA_INSTALLER_VERSION: ${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}
-      run: |
-        aws s3 cp ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe s3://download.chia.net/latest-dev/ChiaSetup-latest-dev.exe
-        aws s3 cp ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe.sha256 s3://download.chia.net/latest-dev/ChiaSetup-latest-dev.exe.sha256
-
-    - name: Upload Release Files
-      if: steps.check_secrets.outputs.HAS_AWS_SECRET && env.FULL_RELEASE == 'true'
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.INSTALLER_UPLOAD_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.INSTALLER_UPLOAD_SECRET }}
-      run: |
-        aws s3 cp ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe s3://download.chia.net/install/
-        aws s3 cp ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe.sha256 s3://download.chia.net/install/
-        aws s3 cp ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe.torrent s3://download.chia.net/torrents/
+        name: bpx-installers-windows-exe-intel
+        path: ${{ github.workspace }}\bpx-gui\release-builds\
 
     - name: Get tag name
       if: startsWith(github.ref, 'refs/tags/')
@@ -282,25 +214,13 @@ jobs:
       if: env.RELEASE == 'true'
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CHIA_INSTALLER_VERSION: ${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}
+        BPX_INSTALLER_VERSION: ${{ steps.version_number.outputs.BPX_INSTALLER_VERSION }}
       run: |
-        gh release upload $env:RELEASE_TAG ${{ github.workspace }}\chia-blockchain-gui\release-builds\windows-installer\ChiaSetup-${{ steps.version_number.outputs.CHIA_INSTALLER_VERSION }}.exe
-
-    - name: Mark installer complete
-      if: steps.check_secrets.outputs.HAS_GLUE_SECRET && env.FULL_RELEASE == 'true'
-      run: |
-        $headers = @{
-            Authorization="Bearer ${{ secrets.GLUE_ACCESS_TOKEN }}"
-        }
-        $data = @{
-            chia_ref='${{ steps.tag-name.outputs.TAG_NAME }}'
-        }
-        $json = $data | ConvertTo-Json
-        $response = Invoke-RestMethod '${{ secrets.GLUE_API_URL }}/api/v1/${{ steps.tag-name.outputs.REPO_NAME }}/${{ steps.tag-name.outputs.TAG_NAME }}/success/build-windows' -Method Post -Body $json -ContentType 'application/json' -Headers $headers
+        gh release upload $env:RELEASE_TAG ${{ github.workspace }}\bpx-gui\release-builds\windows-installer\bpx-beacon-client_${{ steps.version_number.outputs.BPX_INSTALLER_VERSION }}_amd64.exe
 
     - name: Remove Windows exe and installer to exclude from cache
       run: |
-        Remove-Item .\chia-blockchain-gui\packages\gui\dist -Recurse -Force
-        Remove-Item .\chia-blockchain-gui\packages\gui\daemon -Recurse -Force
-        Remove-Item .\chia-blockchain-gui\Chia-win32-x64 -Recurse -Force
-        Remove-Item .\chia-blockchain-gui\release-builds -Recurse -Force
+        Remove-Item .\bpx-gui\packages\gui\dist -Recurse -Force
+        Remove-Item .\bpx-gui\packages\gui\daemon -Recurse -Force
+        Remove-Item .\bpx-gui\bpx-gui-win32-x64 -Recurse -Force
+        Remove-Item .\bpx-gui\release-builds -Recurse -Force

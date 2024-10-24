@@ -1,0 +1,10 @@
+name: "SSH to HTTPS"
+description: "Updates git configuration to use https instead of ssh for any urls that might try to clone with ssh"
+runs:
+  using: "composite"
+  steps:
+    - name: Reconfigure git to use HTTP authentication
+      run: >
+        git config --global url."https://github.com/".insteadOf
+        ssh://git@github.com/
+      shell: sh

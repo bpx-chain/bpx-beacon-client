@@ -1,0 +1,9 @@
+name: "Mark git directory as safe"
+description: "Marks the github workspace as a safe git directory"
+runs:
+  using: "composite"
+  steps:
+    - name: Add safe git directory for the workspace
+      run: >
+        git config --global --add safe.directory $GITHUB_WORKSPACE
+      shell: sh

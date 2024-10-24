@@ -24,7 +24,7 @@ config/keys.yaml
 config/plots.yaml
 
 # Bundled code
-chia-blockchain.tar.gz.tar.gz
+bpx-beacon-client.tar.gz.tar.gz
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -50,7 +50,7 @@ activate
 .idea
 
 # Packaging
-chia-blockchain.tar.gz
+bpx-beacon-client.tar.gz
 
 # Timelord utilities
 vdf_bench
@@ -67,27 +67,23 @@ vdf_bench
 # Attest Files
 *.attest
 
-# Compiled CLVM
-main.sym
-*.recompiled
-
 # Profiling
 *.prof
 *.pstats
 
 # Dev config react
-# chia-blockchain-gui/src/dev_config.js
+# bpx-gui/src/dev_config.js
 # React built app
-chia-blockchain-gui/.eslintcache
-chia-blockchain-gui/build
+bpx-gui/.eslintcache
+bpx-gui/build
 build_scripts/dist
 build_scripts/*.Dmg
-chia-blockchain-gui/src/locales/_build
+bpx-gui/src/locales/_build
 build_scripts\win_build
 build_scripts/win_build
 win_code_sign_cert.p12
 
-# chia-blockchain wheel build folder
+# bpx-beacon-client wheel build folder
 build/
 
 # Temporal `n` (node version manager) directory
@@ -96,9 +92,6 @@ build/
 # pytest-monitor
 # https://pytest-monitor.readthedocs.io/en/latest/operating.html?highlight=.pymon#storage
 .pymon
-
-# cache for tooling such as tools/manage_clvm.py
-.chia_cache/
 
 #       =====                       =====
 #     DO NOT EDIT BELOW - GENERATED
@@ -157,7 +150,6 @@ MANIFEST
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
 
 # Installer logs
 pip-log.txt
