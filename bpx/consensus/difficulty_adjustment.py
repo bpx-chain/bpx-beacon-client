@@ -257,7 +257,7 @@ def _get_next_sub_slot_iters(
     if new_ssi_precise >= last_block_curr.sub_slot_iters:
         new_ssi_precise = uint64(min(new_ssi_precise, max_ssi))
     else:
-        new_ssi_precise = uint64(max([constants.NUM_SPS_SUB_SLOT, new_ssi_precise, min_ssi]))
+        new_ssi_precise = uint64(max([constants.SUB_SLOT_ITERS_HARD_MIN, new_ssi_precise, min_ssi]))
 
     new_ssi = truncate_to_significant_bits(new_ssi_precise, constants.SIGNIFICANT_BITS)
     new_ssi = uint64(new_ssi - new_ssi % constants.NUM_SPS_SUB_SLOT)  # Must divide the sub slot

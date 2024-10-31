@@ -21,6 +21,7 @@ class ConsensusConstants:
     NUM_SPS_SUB_SLOT: uint32  # The number of signage points per sub-slot (including the 0th sp at the sub-slot start)
 
     SUB_SLOT_ITERS_STARTING: uint64  # The sub_slot_iters for the first epoch
+    SUB_SLOT_ITERS_HARD_MIN: uint64  # Hard minimum for anti-stall protection
     DIFFICULTY_CONSTANT_FACTOR: uint128  # Multiplied by the difficulty to get iterations
     DIFFICULTY_STARTING: uint64  # The difficulty for the first epoch
     # The maximum factor by which difficulty and sub_slot_iters can change per epoch
