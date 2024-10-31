@@ -1,0 +1,402 @@
+min_mainnet_k_size: 32
+
+# Send a ping to all peers after ping_interval seconds
+ping_interval: 120
+self_hostname: &self_hostname "localhost"
+prefer_ipv6: False
+daemon_port: 8200
+daemon_max_message_size: 50000000 # maximum size of RPC message in bytes
+daemon_heartbeat: 300 # sets the heartbeat for ping/ping interval and timeouts
+inbound_rate_limit_percent: 100
+outbound_rate_limit_percent: 30
+
+network_overrides: &network_overrides
+  constants:
+    mainnet:
+      GENESIS_CHALLENGE: 511d20a74f1453a9dcf39108a854417a31ff56aa333fd64d888b584994d08dd4
+      GENESIS_EXECUTION_BLOCK_HASH: 3a40b679aa3ccd954180ef2e55b39ec17e72e7e7a8b9597c737bccfd3c7d8896
+      PREFARM_ADDRESS: 821ac8f51688021ea9870f6e0fed17bcc1179557
+      PREFARM_AMOUNT: 174933156
+    testnet:
+      GENESIS_CHALLENGE: c73895b9a12583af9b5de6c38418a652772b0c215b4e1edff07da591ffb2133e
+      GENESIS_EXECUTION_BLOCK_HASH: 8c4015fcc0c3b05492e613a60c1c45d578ae5ff9fdbde9cc17986d235b31f7d4
+      PREFARM_ADDRESS: 534d999c2302de426cea11482fe820f222a5b3e1
+      PREFARM_AMOUNT: 20000000
+  config:
+    mainnet:
+      default_beacon_port: 6201
+      jwt_secret: ../execution/geth/jwtsecret
+    testnet:
+      default_beacon_port: 6201
+      jwt_secret: ../execution/testnet/geth/jwtsecret
+
+selected_network: &selected_network "mainnet"
+
+# public ssl ca is included in source code
+# Private ssl ca is used for trusted connections between machines user owns
+private_ssl_ca:
+  crt: "config/ssl/ca/private_ca.crt"
+  key: "config/ssl/ca/private_ca.key"
+
+bpx_ssl_ca:
+  crt: "config/ssl/ca/bpx_ca.crt"
+  key: "config/ssl/ca/bpx_ca.key"
+
+
+daemon_ssl:
+  private_crt: "config/ssl/daemon/private_daemon.crt"
+  private_key: "config/ssl/daemon/private_daemon.key"
+
+
+# Controls logging of all servers (harvester, farmer, etc..). Each one can be overridden.
+logging: &logging
+  log_stdout: False  # If True, outputs to stdout instead of a file
+  log_filename: "log/debug.log"
+  log_level: "WARNING"  # Can be CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET
+  log_maxfilesrotation: 7 #  Max files in rotation. Default value 7 if the key is not set
+  log_maxbytesrotation: 52428800 #  Max bytes logged before rotating logs
+  log_use_gzip: False #  Use gzip to compress rotated logs
+  log_syslog: False  # If True, outputs to SysLog host and port specified
+  log_syslog_host: "localhost"  # Send logging messages to a remote or local Unix syslog
+  log_syslog_port: 514  # UDP port of the remote or local Unix syslog
+
+seeder:
+  # The fake beacon client used for crawling will run on this port.
+  port: 6201
+  # Most beacon clients on the network run on this port.
+  other_peers_port: 6201
+  # This will override the default beacon.peer_connect_timeout for the crawler beacon client
+  peer_connect_timeout: 2
+  # Path to crawler DB. Defaults to $BPX_ROOT/crawler.db
+  crawler_db_path: "crawler.db"
+  # Peers used for the initial run.
+  bootstrap_peers:
+    - "node.mainnet.bpxchain.cc"
+  # Only consider nodes synced at least to this height.
+  minimum_height: 1
+  # How many of a particular version we need to see before reporting it in the logs
+  minimum_version_count: 100
+  domain_name: "seeder.example.com."
+  nameserver: "example.com."
+  ttl: 300
+  soa:
+    rname: "hostmaster.example.com."
+    serial_number: 1619105223
+    refresh: 10800
+    retry: 10800
+    expire: 604800
+    minimum: 1800
+  network_overrides: *network_overrides
+  selected_network: *selected_network
+  logging: *logging
+  # Crawler is its own standalone service within the seeder component
+  crawler:
+    start_rpc_server: True
+    rpc_port: 8206
+    ssl:
+      private_crt: "config/ssl/crawler/private_crawler.crt"
+      private_key: "config/ssl/crawler/private_crawler.key"
+
+harvester:
+  # The harvester server (if run) will run on this port
+  port: 6205
+  farmer_peer:
+    host: *self_hostname
+    port: 6204
+
+  # If True, starts an RPC server at the following port
+  start_rpc_server: True
+  rpc_port: 8205
+  num_threads: 30
+  plots_refresh_parameter:
+    interval_seconds: 120 # The interval in seconds to refresh the plot file manager
+    retry_invalid_seconds: 1200 # How long to wait before re-trying plots which failed to load
+    batch_size: 300 # How many plot files the harvester processes before it waits batch_sleep_milliseconds
+    batch_sleep_milliseconds: 1 # Milliseconds the harvester sleeps between batch processing
+
+
+  # If True use parallel reads in chiapos
+  parallel_read: True
+
+  logging: *logging
+  network_overrides: *network_overrides
+  selected_network: *selected_network
+
+  # Plots are searched for in the following directories
+  plot_directories: []
+  recursive_plot_scan: False # If True the harvester scans plots recursively in the provided directories.
+
+  ssl:
+    private_crt:  "config/ssl/harvester/private_harvester.crt"
+    private_key:  "config/ssl/harvester/private_harvester.key"
+
+  private_ssl_ca:
+    crt: "config/ssl/ca/private_ca.crt"
+    key: "config/ssl/ca/private_ca.key"
+
+  bpx_ssl_ca:
+    crt: "config/ssl/ca/bpx_ca.crt"
+    key: "config/ssl/ca/bpx_ca.key"
+
+  # Compressed harvesting.
+  parallel_decompressor_count: 0
+  # If set to 0, `decompressor_thread_count` will default to half of nproc available on the machine.
+  # A non-zero number overrides this default.
+  decompressor_thread_count: 0
+  disable_cpu_affinity: False
+  # Ignore compressed plots with compression level greater than this.
+  max_compression_level_allowed: 7
+  use_gpu_harvesting: False
+  gpu_index: 0
+  enforce_gpu_index: False
+  # If no decompressor is available after `decompressor_timeout` seconds, abort the current operation.
+  decompressor_timeout: 20
+
+farmer:
+  # The farmer server (if run) will run on this port
+  port: 6204
+  # The farmer will attempt to connect to this beacon client and harvester
+  beacon_peer:
+    host: *self_hostname
+    port: 6201
+  harvester_peer:
+    host: *self_hostname
+    port: 6205
+
+  pool_public_keys: []
+
+  # If True, starts an RPC server at the following port
+  start_rpc_server: True
+  rpc_port: 8204
+
+  logging: *logging
+  network_overrides: *network_overrides
+  selected_network: *selected_network
+
+  ssl:
+    private_crt:  "config/ssl/farmer/private_farmer.crt"
+    private_key:  "config/ssl/farmer/private_farmer.key"
+    public_crt:  "config/ssl/farmer/public_farmer.crt"
+    public_key:  "config/ssl/farmer/public_farmer.key"
+
+# Don't run this unless you want to run VDF clients on the local machine.
+timelord_launcher:
+  # The server where the VDF clients will connect to.
+  host: *self_hostname
+  port: 8000
+  # Number of VDF client processes to keep alive in the local machine.
+  process_count: 3
+  logging: *logging
+
+
+timelord:
+  # The timelord server (if run) will run on this port
+  port: 6203
+  # Provides a list of VDF clients expected to connect to this timelord.
+  # For each client, an IP is provided, together with the estimated iterations per second.
+  vdf_clients:
+    ip:
+      - *self_hostname
+      - localhost
+      - 127.0.0.1
+    ips_estimate:
+      - 150000
+  beacon_peer:
+      host: *self_hostname
+      port: 6201
+  # Maximum number of seconds allowed for a client to reconnect to the server.
+  max_connection_time: 60
+  # The ip and port where the TCP clients will connect.
+  vdf_server:
+    host: *self_hostname
+    port: 8000
+  logging: *logging
+  network_overrides: *network_overrides
+  selected_network: *selected_network
+  # fast_algorithm is a faster proof generation algorithm. This speed increase
+  # requires much less memory usage and a does not have the risk of OOM that
+  # the normal timelord has but requires significantly more cores doing
+  # parallel proof generation and creates a larger and slower to verify
+  # resulting proof.
+  # An Intel Core i9-10900K can run 2 normal vdf_clients at ~221,000 ips
+  # without slowing down but running more than 1 with fast_algorithm will
+  # run each vdf_client slower.
+  fast_algorithm: False
+  # Bluebox (sanitizing timelord):
+  # If set 'True', the timelord will create compact proofs of time, instead of
+  # extending the chain. The attribute 'fast_algorithm' won't apply if timelord
+  # is running in bluebox_mode.
+  # You must set 'send_uncompact_interval' in 'beacon' > 0 in the beacon
+  # section below to have beacon send existing time proofs to be sanitized.
+  bluebox_mode: False
+  # This runs a less CPU intensive bluebox. Runs for windows. Settings apply as for `bluebox_mode`.
+  # Optionally set `process_count` in `timelord_launcher` to 0, since timelord launcher won't be used in this case.
+  # IMPORTANT! `bluebox_mode` must also be set to True for this option to work.
+  slow_bluebox: False
+  # If `slow_bluebox` is True, launches `slow_bluebox_process_count` processes.
+  slow_bluebox_process_count: 1
+
+  multiprocessing_start_method: default
+
+  start_rpc_server: True
+  rpc_port: 8203
+
+  ssl:
+    private_crt:  "config/ssl/timelord/private_timelord.crt"
+    private_key:  "config/ssl/timelord/private_timelord.key"
+    public_crt:  "config/ssl/timelord/public_timelord.crt"
+    public_key:  "config/ssl/timelord/public_timelord.key"
+
+beacon:
+  # The beacon client (if run) will run on this port
+  port: 6201
+
+  # controls the sync-to-disk behavior of the database connection. Can be one of:
+  # "on"    enables syncing to disk, minimizes risk of corrupting the DB in
+  #         power-loss, disk failure or kernel panics
+  # "full"  enables extra syncing to disk for additional safety from
+  #         power-failures and kernel panics
+  # "off"   disables syncing, lightens disk load and improves performance.
+  #         increases risk of corrupting DB in power-loss, disk failure or
+  #         kernel panics
+  # "auto"  on/off is decided based on a heuristic of how likely a failure is on
+  #         the particular system we're running on. Defaults to "full".
+  db_sync: "auto"
+
+  # the number of threads used to read from the blockchain database
+  # concurrently. There's always only 1 writer, but the number of readers is
+  # configurable
+  db_readers: 4
+
+  # Run multiple nodes with different databases by changing the database_path
+  database_path: db/blockchain_v1_CHALLENGE.sqlite
+  # peer_db_path is deprecated and has been replaced by peers_file_path
+  peer_db_path: db/peer_table_node.sqlite
+  peers_file_path: db/peers.dat
+
+  multiprocessing_start_method: default
+
+  # If True, starts an RPC server at the following port
+  start_rpc_server: True
+  rpc_port: 8201
+
+  # Use UPnP to attempt to allow other beacon clients to reach your node behind a gateway
+  enable_upnp: True
+
+  # If node is more than these blocks behind, will do a sync (long sync)
+  sync_blocks_behind_threshold: 300
+
+  # If node is more than these blocks behind, will do a short batch-sync, if it's less, will do a backtrack sync
+  short_sync_blocks_behind_threshold: 20
+
+  # When creating process pools the process count will generally be the CPU count minus
+  # this reserved core count.
+  reserved_cores: 0
+
+  # set this to true to not offload heavy lifting into separate child processes.
+  # this option is mostly useful when profiling, since only the main process is
+  # profiled.
+  single_threaded: False
+
+  # How often to initiate outbound connections to other beacon clients.
+  peer_connect_interval: 30
+  # How long to wait for a peer connection
+  peer_connect_timeout: 30
+  # Accept peers until this number of connections
+  target_peer_count: 80
+  # Initiate outbound connections until this number is hit.
+  target_outbound_peer_count: 8
+  # IPv4/IPv6 network addresses and CIDR blocks allowed to connect even when target_peer_count has been hit.
+  # exempt_peer_networks: ["192.168.0.3", "192.168.1.0/24", "fe80::/10", "2606:4700:4700::64/128"]
+  exempt_peer_networks: []
+  # Accept at most # of inbound connections for different node types.
+  max_inbound_farmer: 10
+  max_inbound_timelord: 5
+  # Only connect to peers who we have heard about in the last recent_peer_threshold seconds
+  recent_peer_threshold: 6000
+
+  # Send to a Bluebox (sanitizing timelord) uncompact blocks once every
+  # 'send_uncompact_interval' seconds. Set to 0 if you don't use this feature.
+  send_uncompact_interval: 0
+  # At every 'send_uncompact_interval' seconds, send blueboxes 'target_uncompact_proofs' proofs to be normalized.
+  target_uncompact_proofs: 100
+  # Setting this flag as True, blueboxes will sanitize only data needed in weight proof calculation, as opposed to whole blocks.
+  # Default is set to False, as the network needs only one or two blueboxes like this.
+  sanitize_weight_proof_only: False
+  # timeout for weight proof request
+  weight_proof_timeout: &weight_proof_timeout 360
+
+  # when enabled, the beacon client will print a pstats profile to the root_dir/profile every second
+  # analyze with bpx/utils/profiler.py
+  enable_profiler: False
+
+  enable_memory_profiler: False
+
+  # this is a debug and profiling facility that logs all SQLite commands to a
+  # separate log file (under logging/sql.log).
+  log_sqlite_cmds: False
+
+  # List of trusted DNS seeders to bootstrap from.
+  # If you modify this, please change the hardcode as well from Beacon.set_server()
+  dns_servers: &dns_servers
+    - "dns-introducer.mainnet.bpxchain.cc"
+  farmer_peer:
+      host: *self_hostname
+      port: 6204
+  timelord_peer:
+      host: *self_hostname
+      port: 6203
+  introducer_peer:
+      host: introducer.mainnet.bpxchain.cc
+      port: 6202
+  logging: *logging
+  network_overrides: *network_overrides
+  selected_network: *selected_network
+
+  ssl:
+    private_crt:  "config/ssl/beacon/private_beacon.crt"
+    private_key:  "config/ssl/beacon/private_beacon.key"
+    public_crt:  "config/ssl/beacon/public_beacon.crt"
+    public_key:  "config/ssl/beacon/public_beacon.key"
+  use_bpx_loop_policy: True
+  
+  # Execution client Engine API endpoint
+  execution_endpoint: http://127.0.0.1:8551
+  # Target address for block rewards and fees
+  coinbase: "0x0000000000000000000000000000000000000000"
+  # Optimistic import allows a beacon client to import, process, and consider a beacon block for its forkchoice head,
+  # even though it has not validated its execution payload
+  optimistic_import: True
+
+ui:
+  # Which port to use to communicate with the beacon client
+  rpc_port: 8201
+
+  # This SSH key is for the ui SSH server
+  ssh_filename: config/ssh_host_key
+  logging: *logging
+  network_overrides: *network_overrides
+  selected_network: *selected_network
+
+  # this is where the electron UI will find its daemon
+  # defaults to the one running locally with its private keys
+  daemon_host: *self_hostname
+  daemon_port: 8200
+  daemon_ssl:
+    private_crt: config/ssl/daemon/private_daemon.crt
+    private_key: config/ssl/daemon/private_daemon.key
+
+introducer:
+  host: *self_hostname
+  port: 6202
+  max_peers_to_send: 20
+  # The introducer will only return peers it has seen in the last
+  # recent_peer_threshold seconds
+  recent_peer_threshold: 6000
+  logging: *logging
+  network_overrides: *network_overrides
+  selected_network: *selected_network
+
+  ssl:
+    public_crt:  "config/ssl/beacon/public_beacon.crt"
+    public_key:  "config/ssl/beacon/public_beacon.key"

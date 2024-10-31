@@ -179,18 +179,13 @@ ignored-classes=optparse.Values,thread._local,_thread._local
 # and thus existing member attributes cannot be deduced by static analysis. It
 # supports qualified module names, as well as Unix pattern matching.
 ignored-modules=blspy,
-                chiabip158,
                 chiapos,
                 chiavdf,
-                chia_rs,
                 cryptography,
                 aiohttp,
                 keyring,
                 bitstring,
-                clvm_tools,
-                clvm_tools_rs,
                 setproctitle,
-                clvm,
                 colorlog,
                 concurrent_log_handler,
                 aiosqlite,
@@ -198,7 +193,9 @@ ignored-modules=blspy,
                 aiter,
                 miniupnpc,
                 pytest,
-                setuptools_scm
+                setuptools_scm,
+                web3,
+                PyJWT
 
 # Show a hint with possible names when a member name was not found. The aspect
 # of finding the hint is based on edit distance.

@@ -57,19 +57,13 @@ fi
 if [ "$(uname -m)" = "armv7l" ]; then
   echo ""
   echo "WARNING:"
-  echo "The Chia Blockchain requires a 64 bit OS and this is 32 bit armv7l"
-  echo "For more information, see"
-  echo "https://github.com/Chia-Network/chia-blockchain/wiki/Raspberry-Pi"
+  echo "The BPX Beacon Client requires a 64 bit OS and this is 32 bit armv7l"
   echo "Exiting."
   exit 1
 fi
-# Get submodules
-git submodule update --init mozilla-ca
 
 UBUNTU_PRE_20=0
 UBUNTU_20=0
-UBUNTU_21=0
-UBUNTU_22=0
 
 if $UBUNTU; then
   LSB_RELEASE=$(lsb_release -rs)
@@ -80,12 +74,8 @@ if $UBUNTU; then
   # Mint 20.04 responds with 20 here so 20 instead of 20.04
   if [ "$(echo "$LSB_RELEASE<20" | bc)" = "1" ]; then
     UBUNTU_PRE_20=1
-  elif [ "$(echo "$LSB_RELEASE<21" | bc)" = "1" ]; then
-    UBUNTU_20=1
-  elif [ "$(echo "$LSB_RELEASE<22" | bc)" = "1" ]; then
-    UBUNTU_21=1
   else
-    UBUNTU_22=1
+    UBUNTU_20=1
   fi
 fi
 
@@ -102,7 +92,7 @@ install_python3_and_sqlite3_from_source_with_yum() {
   echo "cd $TMP_PATH"
   cd "$TMP_PATH"
   # Install sqlite>=3.37
-  # yum install sqlite-devel brings sqlite3.7 which is not compatible with chia
+  # yum install sqlite-devel brings sqlite3.7 which is not compatible with bpx
   echo "wget https://www.sqlite.org/2022/sqlite-autoconf-3370200.tar.gz"
   wget https://www.sqlite.org/2022/sqlite-autoconf-3370200.tar.gz
   tar xf sqlite-autoconf-3370200.tar.gz
@@ -115,7 +105,7 @@ install_python3_and_sqlite3_from_source_with_yum() {
   make -j"$(nproc)" | stdbuf -o0 cut -b1-"$(tput cols)" | sed -u 'i\\o033[2K' | stdbuf -o0 tr '\n' '\r'; echo
   echo "sudo make install"
   sudo make install | stdbuf -o0 cut -b1-"$(tput cols)" | sed -u 'i\\o033[2K' | stdbuf -o0 tr '\n' '\r'; echo
-  # yum install python3 brings Python3.6 which is not supported by chia
+  # yum install python3 brings Python3.6 which is not supported by bpx
   cd ..
   echo "wget https://www.python.org/ftp/python/3.9.11/Python-3.9.11.tgz"
   wget https://www.python.org/ftp/python/3.9.11/Python-3.9.11.tgz
@@ -199,17 +189,9 @@ elif [ "$(uname)" = "Linux" ]; then
     # misconfiguration of the secondary Python version 3.7.  The primary is Python 3.6.
     sudo apt-get install -y python3.7-venv python3.7-distutils openssl
   elif [ "$UBUNTU_20" = "1" ]; then
-    echo "Installing on Ubuntu 20.*."
+    echo "Installing on Ubuntu 20.* or newer."
     sudo apt-get update
-    sudo apt-get install -y python3.8-venv openssl
-  elif [ "$UBUNTU_21" = "1" ]; then
-    echo "Installing on Ubuntu 21.*."
-    sudo apt-get update
-    sudo apt-get install -y python3.9-venv openssl
-  elif [ "$UBUNTU_22" = "1" ]; then
-    echo "Installing on Ubuntu 22.* or newer."
-    sudo apt-get update
-    sudo apt-get install -y python3.10-venv openssl
+    sudo apt-get install -y python3-venv openssl
   elif [ "$DEBIAN" = "true" ]; then
     echo "Installing on Debian."
     sudo apt-get update
@@ -285,7 +267,7 @@ if ! command -v "$INSTALL_PYTHON_PATH" >/dev/null; then
 fi
 
 if [ "$PYTHON_MAJOR_VER" -ne "3" ] || [ "$PYTHON_MINOR_VER" -lt "7" ] || [ "$PYTHON_MINOR_VER" -ge "12" ]; then
-  echo "Chia requires Python version >= 3.7 and  < 3.12.0" >&2
+  echo "BPX requires Python version >= 3.7 and  < 3.12.0" >&2
   echo "Current Python version = $INSTALL_PYTHON_VERSION" >&2
   # If Arch, direct to Arch Wiki
   if type pacman >/dev/null 2>&1 && [ -f "/etc/arch-release" ]; then
@@ -355,13 +337,8 @@ if [ -n "$PLOTTER_INSTALL" ]; then
 fi
 
 echo ""
-echo "Chia blockchain install.sh complete."
-echo "For assistance join us on Keybase in the #support chat channel:"
-echo "https://keybase.io/team/chia_network.public"
-echo ""
-echo "Try the Quick Start Guide to running chia-blockchain:"
-echo "https://github.com/Chia-Network/chia-blockchain/wiki/Quick-Start-Guide"
+echo "BPX Beacon Client install.sh complete."
 echo ""
 echo "To install the GUI run '. ./activate' then 'sh install-gui.sh'."
 echo ""
-echo "Type '. ./activate' and then 'chia init' to begin."
+echo "Type '. ./activate' and then 'bpx init' to begin."

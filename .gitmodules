@@ -1,0 +1,4 @@
+[submodule "bpx-gui"]
+	path = bpx-gui
+	url = https://github.com/bpx-chain/bpx-gui
+    branch = main
