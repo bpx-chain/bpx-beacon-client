@@ -5,11 +5,16 @@ import sys
 
 from setuptools import find_packages, setup
 
+if sys.platform == "win32":
+    chiavdf_version = "chiavdf==1.1.8"
+else:
+    chiavdf_version = "chiavdf==1.1.0"
+
 dependencies = [
     "aiofiles==23.2.1",  # Async IO for files
     "anyio==4.0.0",
     "blspy==2.0.2", # Signature library
-    "chiavdf==1.1.0",  # timelord and vdf verification
+    chiavdf_version,  # timelord and vdf verification
     "chiapos==2.0.3",  # proof of space
     "aiohttp==3.9.1",  # HTTP server for beacon client rpc
     "aiosqlite==0.10.0",  # asyncio wrapper for sqlite, to store blocks
