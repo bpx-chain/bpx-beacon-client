@@ -19,15 +19,15 @@ concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}-${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/heads/release/')) && github.sha || '' }}
   cancel-in-progress: true
 
-env:
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
 jobs:
   build:
     name: Linux amd64 RPM Installer
     runs-on: ubuntu-latest
     container:
       image: chianetwork/centos7-builder:latest
+      volumes:
+        - /node20217:/node20217:rw,rshared
+        - /node20217:/__e/node20:ro,rshared
     timeout-minutes: 40
     strategy:
       fail-fast: false
@@ -36,6 +36,18 @@ jobs:
         python-version: [3.9]
 
     steps:
+    - name: install nodejs20glibc2.17
+      run: |
+        sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/CentOS-*.repo
+        sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/CentOS-*.repo
+        sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/CentOS-*.repo
+        yum clean all
+        yum makecache
+        yum install curl -yyq
+        curl -LO https://unofficial-builds.nodejs.org/download/release/v20.9.0/node-v20.9.0-linux-x64-glibc-217.tar.xz
+        tar -xf node-v20.9.0-linux-x64-glibc-217.tar.xz --strip-components 1 -C /node20217
+        ldd /__e/node20/bin/node
+    
     - name: Checkout Code
       uses: actions/checkout@v3
       with:
